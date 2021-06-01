@@ -23,7 +23,18 @@ The flowsensor and the display are connected to the ESP32 via I2C (GPIO 21/22 fo
 <a href="#logo" name="Wiring"><img src="./IMAGES/WIRING.png" width="600"></a>
 </p>
 
-*WARNING:* The OPAMP has a high-pass filter created by a capacitor + resitor. We need to remove this to let the low-frequency signal from the Oxygen Sensor pass through.
+*WARNING:* The OPAMP has a high-pass filter created by a capacitor + resistor. We need to remove this to let the low-frequency signal from the Oxygen Sensor pass through.
+
+
+# CAD Files
+
+The parts were designed in Autodesk Inventor 2019 student edition and can be found in the folder [./CAD](CAD)
+An enclosure/box to keep all parts in place will be 3D printable.
+
+<p align="center">
+<a href="#logo" name="Wiring"><img src="./IMAGES/image.png" width="600"></a>
+</p>
+*Arrangement of all the parts*
 
 # Software
 
