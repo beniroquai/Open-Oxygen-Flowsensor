@@ -15,6 +15,16 @@ This device is supposed to measure the oxygen flowrate of oxygen bottles.
 - Based on 3D parts + off-the-shelf components 
 - Minimum of tools required 
 
+# Electronics 
+
+The flowsensor and the display are connected to the ESP32 via I2C (GPIO 21/22 for SDA/SCL), wheras the Oxygen Sensor is connected to the board via an ampliefied (i.e. OPAMP) digital-analog port. 
+
+<p align="left">
+<a href="#logo" name="Wiring"><img src="./IMAGES/WIRING.png" width="600"></a>
+</p>
+
+*WARNING:* The OPAMP has a high-pass filter created by a capacitor + resitor. We need to remove this to let the low-frequency signal from the Oxygen Sensor pass through. 
+
 # Bill of materials 
 
 - USB Cable 
