@@ -34,7 +34,20 @@ An enclosure/box to keep all parts in place will be 3D printable.
 <p align="center">
 <a href="#logo" name="Wiring"><img src="./IMAGES/image.png" width="600"></a>
 </p>
+
 *Arrangement of all the parts*
+
+## Housing for the setup
+
+The setup will have a housing for all the parts. Currently it looks like this, where the battery is sitting on top:
+
+<p align="center">
+<a href="#logo" name="Wiring"><img src="./IMAGES/setup_housing.png" width="600"></a>
+</p>
+
+*Arrangement of all the parts*
+
+All **3D printable** files will be found in [./CAD/STL](./CAD/STL)
 
 # Software
 
