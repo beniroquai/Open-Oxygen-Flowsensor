@@ -53,8 +53,7 @@ The setup will have a housing for all the parts. Currently it looks like this, w
 *Arrangement of all the parts*
 
 <p align="center">
-<a href="#logo" name="Wiring"><img src="./IMAGES/Housing.png
-" width="600"></a>
+<a href="#logo" name="Wiring"><img src="./IMAGES/Housing.png" width="600"></a>
 </p>
 
 All **3D printable** files can be found in [./STL](./STL)
@@ -69,8 +68,7 @@ All **3D printable** files can be found in [./STL](./STL)
 3. Place the flow-rate sensor (sensirion) on the plate by pushing one end through one of the wholes. Watch the photograph:
 
 <p align="center">
-<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy2.jpg
-" width="600"></a>
+<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy2.jpg" width="600"></a>
 </p>
 
 4. Now mount the S-connector to the outside of the injection moulded flow adapter (black plastic part of the sensirion); Beware: We don't mount the flow sensor permanently 
@@ -82,27 +80,23 @@ All **3D printable** files can be found in [./STL](./STL)
 10. Mount the LCD Screen using additional M3 screws:
 
 <p align="center">
-<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy1.jpg
-" width="600"></a>
+<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy1.jpg" width="600"></a>
 </p>
 
 11. Add the Powerbank in the desired slot and also add the USB Micro cable
 <p align="center">
-<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy3.jpg
-" width="600"></a>
+<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy3.jpg" width="600"></a>
 </p>
 
 12. Add the lid and mount it using M3 screws 
 <p align="center">
-<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy4.jpg
-" width="600"></a>
+<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy4.jpg" width="600"></a>
 </p>
 
 13. You are done! If you want to have the assembly working under an anble, you can simply rotate the screen: 
 
 <p align="center">
-<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy5.jpg
-" width="600"></a>
+<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy5.jpg" width="600"></a>
 </p>
 
 
@@ -116,7 +110,14 @@ This is the next and most important step!
 
 ### Calibration of the air flow
 
+Use previously measured calibration data? 
+
 ### Calibration of the oxygen level
+
+no oxygen: Co2 from opened water bottles?
+
+21% oxygen: air
+
 
 
 
