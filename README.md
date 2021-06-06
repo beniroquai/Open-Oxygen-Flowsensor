@@ -15,6 +15,8 @@ We would like to have an open-source solution for something like the [TSI digita
 - Low-Cost (~150€)
 - Based on 3D parts + off-the-shelf components
 - Minimum of tools required
+- Portable by relying on a USB power bank
+- LCD for displying oxygen level and flowrate
 
 # Electronics
 
@@ -25,6 +27,8 @@ The flowsensor and the display are connected to the ESP32 via I2C (GPIO 21/22 fo
 </p>
 
 *WARNING:* The OPAMP has a high-pass filter created by a capacitor + resistor. We need to remove this to let the low-frequency signal from the Oxygen Sensor pass through.
+
+In order to make the device independent from external energy sources, we incorporate a USB-battery/powersupply. We rely on a widely available form factor, where the brand/name of the device can largely vary. 
 
 
 # CAD Files
@@ -43,26 +47,91 @@ An enclosure/box to keep all parts in place will be 3D printable.
 The setup will have a housing for all the parts. Currently it looks like this, where the battery is sitting on top:
 
 <p align="center">
-<a href="#logo" name="Wiring"><img src="./IMAGES/setup_housing.png" width="600"></a>
+<a href="#logo" name="Wiring"><img src="./IMAGES/setup_housing.png" width="400"></a>
 </p>
 
 *Arrangement of all the parts*
 
-All **3D printable** files will be found in [./CAD/STL](./CAD/STL)
+<p align="center">
+<a href="#logo" name="Wiring"><img src="./IMAGES/Housing.png
+" width="600"></a>
+</p>
+
+All **3D printable** files can be found in [./STL](./STL)
+
+
+# Assembly
+
+*Sorry for the confusion:* You can mount the parts in both directions. Here, the CAD rendering shows the oxygen sensor on the right hand side, whereas the printed version shows it on the right hand side. Either way works!
+
+1. Make sure you solder all parts together according to the wiring diagram above; To keep the wire chaos small: Twist the cables to form wire bundles; Test its proper functionality by e.g. running the [I2C scanner in the Arduino IDE](https://playground.arduino.cc/Main/I2cScanner/) (you must detect 2 addresses); Then flash the firmware in the Arduino folder.  
+2. Place the LCD screen on the front plate and mount it with 4 M3x12 screws 
+3. Place the flow-rate sensor (sensirion) on the plate by pushing one end through one of the wholes. Watch the photograph:
+
+<p align="center">
+<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy2.jpg
+" width="600"></a>
+</p>
+
+4. Now mount the S-connector to the outside of the injection moulded flow adapter (black plastic part of the sensirion); Beware: We don't mount the flow sensor permanently 
+5. Mount the T-connector (tricky part, not much space); push the black flow adaptor at a side (e.g. diagonal) and try sneaking in the T-adaptor; Move the one thin end into the hole of the Flow sensor
+6. Mount the Oxygen sensor to the open end of the T-connector inside the case 
+7. Rotate the oxygen sensor the way that it resides on the base plate 
+8. Place the ESP32 in the free spot on the base (no holes for screws, since the formfactor is largely varying!) 
+9. Place the OPAMP in the assembly; make sure the open pin connects will **never** cause any shortcut!
+10. Mount the LCD Screen using additional M3 screws:
+
+<p align="center">
+<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy1.jpg
+" width="600"></a>
+</p>
+
+11. Add the Powerbank in the desired slot and also add the USB Micro cable
+<p align="center">
+<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy3.jpg
+" width="600"></a>
+</p>
+
+12. Add the lid and mount it using M3 screws 
+<p align="center">
+<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy4.jpg
+" width="600"></a>
+</p>
+
+13. You are done! If you want to have the assembly working under an anble, you can simply rotate the screen: 
+
+<p align="center">
+<a href="#logo" name="Wiring"><img src="./IMAGES/OpenOxy5.jpg
+" width="600"></a>
+</p>
+
 
 # Software
 
-A first attempt to connect all components can be found in [./ARDUINO](./ARDUINO) (even though it's used by an ESP32, flash it in the Arduino IDE)
+A first attempt to connect all components can be found in [./ARDUINO](./ARDUINO) (even though it's used by an ESP32, flash it in the Arduino IDE).
+
+## Calibration
+
+This is the next and most important step!
+
+### Calibration of the air flow
+
+### Calibration of the oxygen level
+
+
 
 # Bill of materials
 
 - Misc Wires for connecting all parts (use proper soldered connection!)
-- USB micro Cable for flashing the firmware
+- USB micro Cable for flashing the firmware and for supplying energy for portable-mode
+- Various M3 Cylindrical Screws, M3x12mm, 1€ 
 - [I2C LCD Display](https://de.aliexpress.com/item/32413056677.html?spm=a2g0o.productlist.0.0.37d82e0cBbmYmX&algo_pvid=b23eb3fa-26b7-4967-8927-370bceaf8f2b&algo_expid=b23eb3fa-26b7-4967-8927-370bceaf8f2b-0&btsid=0b0a050116225252291684896e9a75&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_), **1,82€**
 - [LM386 Breakoutboard](https://de.aliexpress.com/item/32923555534.html?spm=a2g0o.productlist.0.0.241cc1a74BaRag&algo_pvid=a1d5b181-2755-43ee-b3bf-51264a125677&algo_expid=a1d5b181-2755-43ee-b3bf-51264a125677-0&btsid=0b0a050116225251428054610e9a75&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_) (Need to be modified - remove the highpass filter by bridging one of the capacitors *need to check this again!*; **0,32€**
 - [ESP32](https://de.aliexpress.com/item/1005002624723822.html?spm=a2g0o.productlist.0.0.40046b0bQsIciu&algo_pvid=8d944a26-1403-4761-8dc6-bcd81f928f2b&algo_expid=8d944a26-1403-4761-8dc6-bcd81f928f2b-0&btsid=0b0a050116225251145204377e9a75&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_), **4,01€**
 - [oxygen sensor oxiplus a 00a101](https://de.aliexpress.com/item/4000133941125.html?spm=a2g0o.search0302.0.0.6e2032aa3UHNHZ&algo_pvid=5e64a15b-e5e3-4262-905a-03d4820550db&algo_expid=5e64a15b-e5e3-4262-905a-03d4820550db-3&btsid=0b0a050116225250680124211e9a75&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_); **50,01€**, [Datasheet](https://www.was-geisler.biz/WEBSERVER/Bausteine/Dateien/DB_AU-007_008.pdf)
 - [Sensirion Evaluationskit EK-P4, SDP3X](https://www.digikey.de/product-detail/de/sensirion-ag/EK-P4/1649-1059-ND/6109354?utm_adgroup=General&utm_source=google&utm_medium=cpc&utm_campaign=Smart%20Shopping_Product_Zombie%20SKUs&utm_term=&productid=6109354&gclid=Cj0KCQjwktKFBhCkARIsAJeDT0igeZDRGKpHT8Bw-v7VJBCcK1TvZ1zT8fbia-CdzYWzZLNYBZ50_dcaAksxEALw_wcB); **50,10€**, [Datasheet](https://www.sensirion.com/en/flow-sensors/differential-pressure-sensors/test-your-sdp3x-differential-pressure-sensor-with-the-evaluation-kit-ek-p4/)
+- [USB Powerbank, 5V, 2200mAh (make sure, the battery looks like the one above!)](https://www.ebay.de/p/1437454225); **2,10€**, The brand can vary, but make sure it's fitting in the housing)
+
 
 # Contribute
 If you have a question or found an error, please file an issue! We are happy to improve the device!
