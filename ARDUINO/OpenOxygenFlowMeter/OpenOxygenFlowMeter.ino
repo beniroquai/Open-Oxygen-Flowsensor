@@ -12,10 +12,12 @@ int voltage_value = 0;
 
 LiquidCrystal_I2C lcd(0x38,16,2);  // set the LCD address to 0x3F for a 16 chars and 2 line display
 
+
+// TODO: Need to add a button to start the calibration
+
 void setup() {
 
   Serial.begin(115200);
-  Serial.println(F("SDP3X Example"));
   Wire.begin();
 
   // Initialize sensor
@@ -35,25 +37,28 @@ void setup() {
   
   // Print a message on both lines of the LCD.
   lcd.setCursor(2,0);   //Set cursor to character 2 on line 0
-  lcd.print("Hello world!");
+  lcd.print("     O2       ");
   
   lcd.setCursor(2,1);   //Move cursor to character 2 on line 1
-  lcd.print("LCD Tutorial");
+  lcd.print("Open Oxygen");
 }
 
 void loop() {
 
-    float diffPressure; // Storage for the differential pressure
+  float diffPressure; // Storage for the differential pressure
   float temperature; // Storage for the temperature
 
   // Read the averaged differential pressure and temperature from the sensor
   mySensor.readMeasurement(&diffPressure, &temperature); // Read the measurement
+  
+  // convert the differential pressure into flow-rate
+  float flowrate = convert2slm(diffPressure);
 
   Serial.print(F("Differential pressure is: "));
   Serial.print(diffPressure, 2);
-  Serial.print(F(" (Pa)  Temperature is: "));
-  Serial.print(temperature, 2);
-  Serial.println(F(" (C)"));
+  Serial.print(F(" (Pa);  Flow-rate: "));
+  Serial.print(flowrate, 2);
+  Serial.println(F(" (slm)"));
 
   // readout oxygen level
   ADC_VALUE = analogRead(Analog_channel_pin);
@@ -66,14 +71,26 @@ void loop() {
   Serial.println("volts");
   delay(1000);
 
+
+  // TODO: NEED TO combine the two strings properly!
   lcd.setCursor(0,0);   //Set cursor to character 2 on line 0
-  lcd.print("Pressure: ");
+  lcd.print("Flow: ");
   lcd.setCursor(12,0);
-  lcd.print(diffPressure);
+  lcd.print(flowrate);
 
   lcd.setCursor(0,1);
   lcd.print("Oxygen (%): ");
   lcd.setCursor(12,1);   //Move cursor to character 2 on line 1
   lcd.print(voltage_value);
 
+}
+
+
+float convert2slm(float dp){
+    // convert the differential presure dp into the standard liter per minute
+    a=-20.04843438;
+    b=59.52168936;
+    c=3.11050553;
+    d=10.35186327;
+    return a+(b+dp*d)*c;
 }
