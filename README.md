@@ -31,6 +31,7 @@ The flowsensor and the display are connected to the ESP32 via I2C (GPIO 21/22 fo
 In order to make the device independent from external energy sources, we incorporate a USB-battery/powersupply. We rely on a widely available form factor, where the brand/name of the device can largely vary. 
 
 
+
 # CAD Files
 
 The parts were designed in Autodesk Inventor 2019 student edition and can be found in the folder [./CAD](CAD)
@@ -106,9 +107,37 @@ A first attempt to connect all components can be found in [./ARDUINO](./ARDUINO)
 
 ## Calibration
 
-This is the next and most important step!
 
 ### Calibration of the air flow
+
+The [datasheet](Sensirion_Differential_Pressure_AppNotes_EK-P4_Flow_Element.pdf) for the Sensirion EK-P4 Evaluation Kit
+For SDP3x Flow sensor suggests a relationship between differential pressure and flow-rate measured in Standard Liters per Minute (slm). We fit a curve to the values given in the application note in order to have a parametrized function for the digital readout:
+
+
+<p align="center">
+<a href="#logo" name="Wiring"><img src="./PYTHON/Curve_Flow.png" width="600"></a>
+</p>
+
+The corresponding Python script to generate this figure can be found [here](PYTHON/Fit_Flow_Calibration_Function.py). 
+
+The fit suggest the following function: 
+
+```py
+def func(x, a, b, c, d):
+    return a+np.sqrt(b+x*d)*c
+  
+  
+a=-20.04843438
+b=59.52168936
+c=3.11050553
+d=10.35186327
+```
+
+which can easily be implemented on the ESP32. 
+
+
+
+
 
 Use previously measured calibration data? 
 
