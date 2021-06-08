@@ -26,7 +26,16 @@ The flowsensor and the display are connected to the ESP32 via I2C (GPIO 21/22 fo
 <a href="#logo" name="Wiring"><img src="./IMAGES/WIRING.png" width="600"></a>
 </p>
 
-*WARNING:* The OPAMP has a high-pass filter created by a capacitor + resistor. We need to remove this to let the low-frequency signal from the Oxygen Sensor pass through.
+***WARNING:*** The OPAMP has a high-pass filter created by a capacitor + resistor. We need to remove this to let the low-frequency signal from the Oxygen Sensor pass through.
+
+***Solution:*** Instead of relying on the internal ADC converter and have a rather unknwon OPAMP, we decided to go for digital-ADC with a dedicated I2C interface. 
+The ADS1115 has 4 channels and a resolution of 16 Bit. 
+
+<p align="center">
+<a href="#logo" name="logo"><img src="https://cdn-reichelt.de/bilder/web/artikel_ws/A300/ADAFRUIT-1085-30091131-01.jpg" width="600"></a>
+</p>
+
+
 
 In order to make the device independent from external energy sources, we incorporate a USB-battery/powersupply. We rely on a widely available form factor, where the brand/name of the device can largely vary. 
 
@@ -156,7 +165,7 @@ no oxygen: Co2 from opened water bottles?
 - USB micro Cable for flashing the firmware and for supplying energy for portable-mode
 - Various M3 Cylindrical Screws, M3x12mm, 1€ 
 - [I2C LCD Display](https://de.aliexpress.com/item/32413056677.html?spm=a2g0o.productlist.0.0.37d82e0cBbmYmX&algo_pvid=b23eb3fa-26b7-4967-8927-370bceaf8f2b&algo_expid=b23eb3fa-26b7-4967-8927-370bceaf8f2b-0&btsid=0b0a050116225252291684896e9a75&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_), **1,82€**
-- [LM386 Breakoutboard](https://de.aliexpress.com/item/32923555534.html?spm=a2g0o.productlist.0.0.241cc1a74BaRag&algo_pvid=a1d5b181-2755-43ee-b3bf-51264a125677&algo_expid=a1d5b181-2755-43ee-b3bf-51264a125677-0&btsid=0b0a050116225251428054610e9a75&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_) (Need to be modified - remove the highpass filter by bridging one of the capacitors *need to check this again!*; **0,32€**
+- [ads1115 Analog Digital Converter, 16Bit, I2C Breakoutboard](https://de.aliexpress.com/item/32584944400.html?albpd=de32584944400&acnt=494-037-6276&aff_platform=aaf&albpg=539263010115&netw=u&albcp=12554800262&pvid=433db5a0-d519-414b-b0ec-d81757d569be&sk=UneMJZVf&scm=1007.23534.124000.0&trgt=539263010115&terminal_id=97219810e62b4073bd503e68a1993030&needSmbHouyi=false&albbt=Google_7_shopping&src=google&crea=de32584944400&aff_fcid=fb140952e0f349409d47e72bc9efb9c4-1623130168444-07808-UneMJZVf&gclid=Cj0KCQjwh_eFBhDZARIsALHjIKew4RrgVYxvZKy29i_h_szASqZX6TG-UfPUJ0vnS9FvnMyJQTIaZqoaAhbkEALw_wcB&albag=127990761348&aff_fsk=UneMJZVf&albch=shopping&albagn=888888&isSmbAutoCall=false&aff_trace_key=fb140952e0f349409d47e72bc9efb9c4-1623130168444-07808-UneMJZVf&rmsg=do_not_replacement&device=c&gclsrc=aw.ds) (Need to be tested); **2,32€**
 - [ESP32](https://de.aliexpress.com/item/1005002624723822.html?spm=a2g0o.productlist.0.0.40046b0bQsIciu&algo_pvid=8d944a26-1403-4761-8dc6-bcd81f928f2b&algo_expid=8d944a26-1403-4761-8dc6-bcd81f928f2b-0&btsid=0b0a050116225251145204377e9a75&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_), **4,01€**
 - [oxygen sensor oxiplus a 00a101](https://de.aliexpress.com/item/4000133941125.html?spm=a2g0o.search0302.0.0.6e2032aa3UHNHZ&algo_pvid=5e64a15b-e5e3-4262-905a-03d4820550db&algo_expid=5e64a15b-e5e3-4262-905a-03d4820550db-3&btsid=0b0a050116225250680124211e9a75&ws_ab_test=searchweb0_0,searchweb201602_,searchweb201603_); **50,01€**, [Datasheet](https://www.was-geisler.biz/WEBSERVER/Bausteine/Dateien/DB_AU-007_008.pdf)
 - [Sensirion Evaluationskit EK-P4, SDP3X](https://www.digikey.de/product-detail/de/sensirion-ag/EK-P4/1649-1059-ND/6109354?utm_adgroup=General&utm_source=google&utm_medium=cpc&utm_campaign=Smart%20Shopping_Product_Zombie%20SKUs&utm_term=&productid=6109354&gclid=Cj0KCQjwktKFBhCkARIsAJeDT0igeZDRGKpHT8Bw-v7VJBCcK1TvZ1zT8fbia-CdzYWzZLNYBZ50_dcaAksxEALw_wcB); **50,10€**, [Datasheet](https://www.sensirion.com/en/flow-sensors/differential-pressure-sensors/test-your-sdp3x-differential-pressure-sensor-with-the-evaluation-kit-ek-p4/)
