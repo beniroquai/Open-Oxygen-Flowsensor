@@ -88,9 +88,9 @@ void loop() {
 
 float convert2slm(float dp){
     // convert the differential presure dp into the standard liter per minute
-    a=-20.04843438;
-    b=59.52168936;
-    c=3.11050553;
-    d=10.35186327;
+    float a=-20.04843438;
+    float b=59.52168936;
+    float c=3.11050553;
+    float d=10.35186327;
     return a+(b+dp*d)*c;
 }
