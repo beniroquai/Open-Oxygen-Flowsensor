@@ -32,7 +32,7 @@ The flowsensor and the display are connected to the ESP32 via I2C (GPIO 21/22 fo
 The ADS1115 has 4 channels and a resolution of 16 Bit. 
 
 <p align="center">
-<a href="#logo" name="logo"><img src="https://cdn-reichelt.de/bilder/web/artikel_ws/A300/ADAFRUIT-1085-30091131-01.jpg" width="600"></a>
+<a href="#logo" name="logo"><img src="https://cdn-reichelt.de/bilder/web/artikel_ws/A300/ADAFRUIT-1085-30091131-01.jpg" width="100"></a>
 </p>
 
 
