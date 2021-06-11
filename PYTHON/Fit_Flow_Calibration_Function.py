@@ -49,21 +49,24 @@ plt.xlabel('differential pressure (Pa)')
 plt.ylabel('flow (Standard Liters per Minute)')
 plt.legend(['From datasheet', 'Fit'])
 plt.savefig('Curve_Flow.png')
+plt.show()
 
+print("a,b,c,d")
+print(*popt)
 
 #%% now comes the oxygen sensor
 signal_0percent_oxy = 0 # mV
 sginal_209percent_oxy = 11 # mV
 
-all_oxy_levels = np.linspace(0,100,100)
-m = (sginal_209percent_oxy-signal_0percent_oxy)/20.9
+all_voltage_levels = np.linspace(0,100,100)
+m = 20.9/(sginal_209percent_oxy-signal_0percent_oxy)
 b = signal_0percent_oxy
 
-all_voltages = (all_oxy_levels * m + b)
+all_oxygen_levels = (all_voltage_levels * m + b)
 
 plt.title('Oxygen Sensor ')
-plt.plot(all_oxy_levels,all_voltages)
-plt.xlabel('Oxygen levels (%)')
-plt.ylabel('Voltage levels (mV)')
+plt.plot(all_voltage_levels,all_oxygen_levels)
+plt.ylabel('Oxygen levels (%)')
+plt.xlabel('Voltage levels (mV)')
 plt.legend(['Calibrated using dry ice, mx+b, m='+str(np.round(m,3))+', b='+str(b)])
 plt.savefig('Curve_Flow_Oxygen.png')
