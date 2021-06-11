@@ -47,7 +47,7 @@ The parts were designed in Autodesk Inventor 2019 student edition and can be fou
 An enclosure/box to keep all parts in place will be 3D printable.
 
 <p align="center">
-<a href="#logo" name="Wiring"><img src="./IMAGES/image.png" width="600"></a>
+<a href="#logo" name="Wiring"><img src="./IMAGES/Assemlby_OpenOxygen1.png" width="600"></a>
 </p>
 
 *Arrangement of all the parts*
