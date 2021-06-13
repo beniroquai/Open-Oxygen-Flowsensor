@@ -152,11 +152,24 @@ Use previously measured calibration data?
 
 ### Calibration of the oxygen level
 
-no oxygen: Co2 from opened water bottles?
 
-21% oxygen: air
+The oxygen sensor has a voltage of ~11mV in air, coresopnding to 20.9% O2 level. Placing the whole device in a oxygen-free enivornment (e.g. dry ice), gives a signal from ~3mV. This information can be used to fit a curve and compute the parameters for the linear fit (~3% error according to the manual/datasheet). 
 
+<p align="center">
+<a href="#logo" name="Wiring"><img src="./PYTHON/Curve_Flow_Oxygen.png" width="600"></a>
+</p>
 
+The corresponding Python script to generate this figure can be found [here](PYTHON/Fit_Flow_Calibration_Function.py) and gives these values:
+```py
+m,b
+2.6125 3
+```
+
+which have to be entered in the code `OpenOxygenFlowMeter.ino` in the folder [ARDUINO](./ARDUINO)
+```cpp
+float oxy_m = 2.62; // needs to be calibrated
+float oxy_b = 3;  // needs to be calibrated (corresponds to the voltage at Oxygen level == 0%)
+```
 
 
 # Bill of materials

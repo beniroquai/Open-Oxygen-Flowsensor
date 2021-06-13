@@ -55,7 +55,7 @@ print("a,b,c,d")
 print(*popt)
 
 #%% now comes the oxygen sensor
-signal_0percent_oxy = 0 # mV
+signal_0percent_oxy = 3 # mV
 sginal_209percent_oxy = 11 # mV
 
 all_voltage_levels = np.linspace(0,100,100)
