@@ -12,8 +12,8 @@ LiquidCrystal_I2C lcd(0x38, 16, 2); // set the LCD address to 0x3F for a 16 char
 
 
 int16_t adc0 = -1;
-int16_t mv = 0;
-float oxy_m = 1.92; // needs to be calibrated
+int16_t mv = 3;
+float oxy_m = 2.62; // needs to be calibrated
 float oxy_b = 0;  // needs to be calibrated (corresponds to the voltage at Oxygen level == 0%)
 
 boolean shouldDoWarmupCalibration = true; //change this to false to skip warmup / calibration phase
