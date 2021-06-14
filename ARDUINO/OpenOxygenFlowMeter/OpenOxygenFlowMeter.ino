@@ -114,10 +114,11 @@ float updateOxygenLevel(boolean doCalibration) {
   // Read the ADC value from the bus:
    adc0 = ads.getLastConversionResults();
   if(doCalibration) {
-    String msg = "Calibrating oxy_m to ";
-    msg += String(adc0) + "..";
-    Serial.print(msg);
-    oxy_m = adc0;
+    // TODO calibrate properly to 21% oxygen
+//    String msg = "Calibrating oxy_m to ";
+//    msg += String(adc0) + "..";
+//    Serial.print(msg);
+//    oxy_m = adc0;
   }
   //Serial.print("AIN0: "); Serial.println(adc0);
   // http://cool-web.de/esp8266-esp32/ads1115-16bit-adc-am-esp32-voltmeter.htm
