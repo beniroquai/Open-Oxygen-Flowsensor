@@ -35,11 +35,9 @@ The ADS1115 has 4 channels and a resolution of 16 Bit.
 <a href="#logo" name="logo"><img src="https://cdn-reichelt.de/bilder/web/artikel_ws/A300/ADAFRUIT-1085-30091131-01.jpg" width="100"></a>
 </p>
 
-
-
 In order to make the device independent from external energy sources, we incorporate a USB-battery/powersupply. We rely on a widely available form factor, where the brand/name of the device can largely vary. 
 
-
+***Explenation for the ADS1115:*** *Differential* or *Single Ended* use? We have a positive DC-signal in the range of `0...~100mV`, hence we can go for the single-mode use. An in-depth explanation can be found at [Adafruit](https://learn.adafruit.com/adafruit-4-channel-adc-breakouts/signal-connections). The oxygen sensor is then connected to `Pin+ => AD0` and `Pin- => GND`. Running the test-script on the ESP32 should give you a voltage of `13mV` in air. 
 
 # CAD Files
 
