@@ -16,11 +16,12 @@ int16_t mv = 0;
 float oxy_m = 2.62; // needs to be calibrated
 float oxy_b = 3;  // needs to be calibrated (corresponds to the voltage at Oxygen level == 0%)
 float oxygen_level = 0.;
+float oxy_calibration = 20.9;
 
 
 boolean shouldDoWarmupCalibration = true; //change this to false to skip warmup / calibration phase
 unsigned long startTime;
-unsigned static long warmupDelayInMs = 1000 * 60; // 1 minute warmup time before calibrating to 21% oxygen level
+unsigned static long warmupDelayInMs = 1000 * 10; // 10s warmup time before calibrating to 21% oxygen level
 
 // TODO: Need to add a button to start the calibration
 void setup() {
@@ -114,11 +115,11 @@ float updateOxygenLevel(boolean doCalibration) {
   // Read the ADC value from the bus:
    adc0 = ads.getLastConversionResults();
   if(doCalibration) {
-    // TODO calibrate properly to 21% oxygen
-//    String msg = "Calibrating oxy_m to ";
-//    msg += String(adc0) + "..";
-//    Serial.print(msg);
-//    oxy_m = adc0;
+    String msg = "Calibrating oxy_m to ";
+    msg += String(adc0) + "..";
+    Serial.print(msg);
+    oxy_m = (oxy_calibration - oxy_b) / (0.1875 * adc0);
+    // TODO is oxy_m within plausible boundaries?
   }
   //Serial.print("AIN0: "); Serial.println(adc0);
   // http://cool-web.de/esp8266-esp32/ads1115-16bit-adc-am-esp32-voltmeter.htm
