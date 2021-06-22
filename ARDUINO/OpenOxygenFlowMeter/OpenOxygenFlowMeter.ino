@@ -2,7 +2,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <SparkFun_SDP3x_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_SDP3x
 #include <Wire.h>
-#include <Adafruit_ADS1015.h>
+#include <Adafruit_ADS1X15.h>
 
 
 // all connected to I2C: SDA: Pin 21, SCL: 22
