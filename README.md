@@ -148,7 +148,11 @@ which can easily be implemented on the ESP32.
 
 Use previously measured calibration data? 
 
-### Calibration of the oxygen level
+### Calibration of the oxygen level (automatic)
+
+By default, the current implementation will automatically calibrate the initial voltage of the oxygen sensor to correspond to 20.9% O2 level. This calibration will take place 10 seconds after starting the device.
+
+### Calibration of the oxygen level (manual)
 
 
 The oxygen sensor has a voltage of ~11mV in air, coresopnding to 20.9% O2 level. Placing the whole device in a oxygen-free enivornment (e.g. dry ice), gives a signal from ~3mV. This information can be used to fit a curve and compute the parameters for the linear fit (~3% error according to the manual/datasheet). 
@@ -168,6 +172,8 @@ which have to be entered in the code `OpenOxygenFlowMeter.ino` in the folder [AR
 float oxy_m = 2.62; // needs to be calibrated
 float oxy_b = 3;  // needs to be calibrated (corresponds to the voltage at Oxygen level == 0%)
 ```
+
+In order to prevent `oxy_m` from being auto calibrated, automatic calibration needs to be disabled by setting `boolean shouldDoWarmupCalibration = false;`.
 
 
 # Bill of materials
