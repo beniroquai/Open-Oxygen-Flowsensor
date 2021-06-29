@@ -70,3 +70,6 @@ plt.ylabel('Oxygen levels (%)')
 plt.xlabel('Voltage levels (mV)')
 plt.legend(['Calibrated using dry ice, mx+b, m='+str(np.round(m,3))+', b='+str(b)])
 plt.savefig('Curve_Flow_Oxygen.png')
+
+print("m,b")
+print(m,b)
