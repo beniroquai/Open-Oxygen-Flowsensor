@@ -19,16 +19,17 @@ float oxy_b = 3;  // needs to be calibrated (corresponds to the voltage at Oxyge
 float adcToMV =  0.1875;
 
 // variables for initial auto calibration to air
-float oxyCalibration = 20.9;
+float airCalibrationValue = 20.9;
 boolean shouldDoWarmupCalibration = true; //change this to false to skip warmup / calibration phase
 unsigned long startTime;
 unsigned static long warmupDelayInMs = 1000 * 10; // 10s warmup time before calibrating to 21% oxygen level
 
 // variables for negative flow calibration
-float minAbsDiffPressure = 2; // minimal absolute value of pressure to trigger negative flow calibration
+float negativeFlowCalibrationValue = 100; // change this value to adjust the target oxygen concentration during negative flow calibration
+float minAbsDiffPressure = 10; // needs to be calibrated (minimal absolute value of pressure to trigger negative flow calibration)
 unsigned static long negativeFlowInitDelayInMs = 1000 * 2; // 2s before initiating negative flow calibration
-unsigned static long calibrate100WarmupInMs = 1000 * 10; // 10s warmup time before calibrating to 100%
-unsigned static long negativeFlowPermanentSaveDelayInMs = 1000 * 10; // 10s delay before storing 100% calibration value permanently
+unsigned static long calibrateNegativeFlowWarmupInMs = 1000 * 10; // 10s warmup time before negative flow calibration
+unsigned static long negativeFlowPermanentSaveDelayInMs = 1000 * 10; // 10s delay before storing negative flow calibration value permanently
 unsigned long negativeFlowStartTime = 0;
 
 //variables for storing calibration
@@ -48,10 +49,10 @@ enum DeviceState {
   CALIBRATION_AIR_WARMUP,
   CALIBRATION_AIR,
   MEASURING,
-  CALIBRATION_100_WARMUP,
-  CALIBRATION_100_DONE,
-  CALIBRATION_100_SAVE_DELAY,
-  CALIBRATION_100_SAVED
+  CALIBRATION_NEGFLOW_WARMUP,
+  CALIBRATION_NEGFLOW_DONE,
+  CALIBRATION_NEGFLOW_SAVE_DELAY,
+  CALIBRATION_NEGFLOW_SAVED
 };
 
 enum DeviceState state = LAUNCH;
@@ -160,16 +161,16 @@ void handleNegativeFlow() {
       // negative flow calibration
       
       // check if warmup is finished
-      relevantDelay += calibrate100WarmupInMs;
+      relevantDelay += calibrateNegativeFlowWarmupInMs;
       if(timeDif < relevantDelay) {
-        state = CALIBRATION_100_WARMUP;
+        state = CALIBRATION_NEGFLOW_WARMUP;
       } else {
         
         // check if calibration already happened, if not, calibrate and reset flash
-        if(state == CALIBRATION_100_WARMUP) {
-          calibrateTo100();
+        if(state == CALIBRATION_NEGFLOW_WARMUP) {
+          calibrateToNegativeFlow();
           resetCalibrationInFlash();
-          state = CALIBRATION_100_DONE;
+          state = CALIBRATION_NEGFLOW_DONE;
         }
         
         // wait until "calibration done" message was displayed
@@ -179,12 +180,12 @@ void handleNegativeFlow() {
           // delay to confirm that the calibration should be permanently stored
           relevantDelay += negativeFlowPermanentSaveDelayInMs;
           if(timeDif < relevantDelay) {
-            state = CALIBRATION_100_SAVE_DELAY;
+            state = CALIBRATION_NEGFLOW_SAVE_DELAY;
           } else {
             // store calibration once
-            if(state == CALIBRATION_100_SAVE_DELAY) {
+            if(state == CALIBRATION_NEGFLOW_SAVE_DELAY) {
               storeCalibrationToFlash();
-              state = CALIBRATION_100_SAVED;
+              state = CALIBRATION_NEGFLOW_SAVED;
             }
           }
         }
@@ -204,7 +205,8 @@ void displayState() {
     line2 = "Launching..     ";
   }
   else if(state == CALIBRATION_AIR_WARMUP) {
-    line1 = "Calibr. to 20.9%    ";
+    line1 = "Calibr. to ";
+    line1 = line1 + String(airCalibrationValue, 1) + "%      ";
     line2 = "in ";
     line2 = line2 + countdown + "s, raw: " + adc0 * adcToMV + "        ";
   }
@@ -213,27 +215,31 @@ void displayState() {
   }
   else if(state == MEASURING) {
     line1 = F("Flow: ");
-    line1 += String(flowRate, 5);
+    line1 += String(flowRate, 5) + "     ";
   
     line2 = F("Oxygen: ");
-    line2 += String(oxygenLevel, 4);
+    line2 += String(oxygenLevel, 4) + "     ";
   }
-  else if(state == CALIBRATION_100_WARMUP) {
-    line1 = "Calibr. to 100%   ";
+  else if(state == CALIBRATION_NEGFLOW_WARMUP) {
+    line1 = "Calibr. to ";
+    line1 = line1 + String(negativeFlowCalibrationValue, 1) + "%     ";
     line2 = "in ";
     line2 = line2 + countdown + "s, raw: " + adc0 * adcToMV + "        ";
   }
-  else if(state == CALIBRATION_100_DONE) {
+  else if(state == CALIBRATION_NEGFLOW_DONE) {
     line1 = "Calibration to  ";
-    line2 = "100% O2 done.   ";
+    line2 = "% O2 done.   ";
+    line2 = String(negativeFlowCalibrationValue, 1) + line2;
+    
   }
-  else if(state == CALIBRATION_100_SAVE_DELAY) {
+  else if(state == CALIBRATION_NEGFLOW_SAVE_DELAY) {
     line1 = "Saving calibr.  ";
     line2 = "perm. in ";
     line2 = line2 + countdown + "s..  ";
   }
-  else if(state == CALIBRATION_100_SAVED) {
-    line1 = "Calibr. to 100% ";
+  else if(state == CALIBRATION_NEGFLOW_SAVED) {
+    line1 = "Calibr. to ";
+    line1 = line1 + String(negativeFlowCalibrationValue, 1) + "%     ";
     line2 = "perm. saved.    ";
   }
   
@@ -268,7 +274,7 @@ void updateOxygenLevel(boolean doCalibration) {
     String msg = "Calibrating oxy_m to ";
     msg += String(adc0) + "..";
     Serial.print(msg);
-    oxy_m = (oxyCalibration - oxy_b) / (adcToMV * adc0);
+    oxy_m = (airCalibrationValue - oxy_b) / (adcToMV * adc0);
     // TODO is oxy_m within plausible boundaries?
   }
   //Serial.print("AIN0: "); Serial.println(adc0);
@@ -279,8 +285,8 @@ void updateOxygenLevel(boolean doCalibration) {
   Serial.print("ADC: "); Serial.println(adc0);
 }
 
-void calibrateTo100() {
-  oxyCalibration = 100;
+void calibrateToNegativeFlow() {
+  airCalibrationValue = negativeFlowCalibrationValue;
   updateOxygenLevel(true);
 }
 
