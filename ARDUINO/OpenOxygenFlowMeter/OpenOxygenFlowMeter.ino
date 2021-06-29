@@ -2,7 +2,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <SparkFun_SDP3x_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_SDP3x
 #include <Wire.h>
-#include <Adafruit_ADS1X15.h>
+#include <Adafruit_ADS1015.h>//#include <Adafruit_ADS1X15.h> // Does not work on Windows :/ 
 #include <EEPROM.h>
 
 
@@ -23,6 +23,11 @@ float oxyCalibration = 20.9;
 boolean shouldDoWarmupCalibration = true; //change this to false to skip warmup / calibration phase
 unsigned long startTime;
 unsigned static long warmupDelayInMs = 1000 * 10; // 10s warmup time before calibrating to 21% oxygen level
+float adcAmbient = 11; // voltage level (ADC) @ ambient -> needs to be updated at warmup?
+
+// variables for calibrating with N2/O2
+boolean isCalibrateO2 = false; //if we want to calibrate with O2 => 100% level; if we want to calibrate with N2 => 0% level
+float oxyCalibrationReference = 0.; // value for the reference (i.e. 0 or 100%)
 
 // variables for negative flow calibration
 float minAbsDiffPressure = 2; // minimal absolute value of pressure to trigger negative flow calibration
@@ -44,14 +49,14 @@ float oxygenLevel = 0;
 
 enum DeviceState {
   LAUNCH,
-  RESTORE_CALIBRATION,
+  RESTORE_CALIBRATION_,
   CALIBRATION_AIR_WARMUP,
   CALIBRATION_AIR,
   MEASURING,
-  CALIBRATION_100_WARMUP,
-  CALIBRATION_100_DONE,
-  CALIBRATION_100_SAVE_DELAY,
-  CALIBRATION_100_SAVED
+  CALIBRATION_WARMUP,
+  CALIBRATION_DONE,
+  CALIBRATION_SAVE_DELAY,
+  CALIBRATION_SAVED
 };
 
 enum DeviceState state = LAUNCH;
@@ -93,17 +98,17 @@ void setup() {
   lcd.setCursor(2, 0);
   lcd.print("Open Oxygen");
 
-  if(!shouldDoWarmupCalibration) {
+  if (!shouldDoWarmupCalibration) {
     state = MEASURING;
   }
 
   // read initial calibration values from flash
   if (!EEPROM.begin(sizeof(0.0f))) {
     Serial.println("failed to initialise EEPROM");
-  } else if(EEPROM_readFloat(calibrationOxyMAddress) > 0) {
+  } else if (EEPROM_readFloat(calibrationOxyMAddress) > 0) {
     Serial.println("Reading initial oxy_m value from flash: ");
     Serial.println(EEPROM_readFloat(calibrationOxyMAddress));
-    state = RESTORE_CALIBRATION;
+    state = RESTORE_CALIBRATION_;
     shouldDoWarmupCalibration = false;
   }
 }
@@ -113,13 +118,13 @@ void loop() {
   boolean doCalibration = false;
 
   long currentTime = millis();
-  if(state == RESTORE_CALIBRATION) {
-    if(currentTime - startTime > infoMsgDelay) {
+  if (state == RESTORE_CALIBRATION_) {
+    if (currentTime - startTime > infoMsgDelay) {
       state = MEASURING;
     }
-  } else if(shouldDoWarmupCalibration) {
-    if(currentTime - startTime < warmupDelayInMs) {
-      countdown = int((warmupDelayInMs - currentTime + startTime)/1000)+1;
+  } else if (shouldDoWarmupCalibration) {
+    if (currentTime - startTime < warmupDelayInMs) {
+      countdown = int((warmupDelayInMs - currentTime + startTime) / 1000) + 1;
       state = CALIBRATION_AIR_WARMUP;
     } else {
       // warmup is over, trigger calibration & skip warmup check in the future
@@ -133,7 +138,9 @@ void loop() {
   updateFlowRate();
   updateOxygenLevel(doCalibration);
 
-  if(state != CALIBRATION_AIR_WARMUP && state != RESTORE_CALIBRATION) {
+
+  // negative flow will trigger calibration of the non-ambient oxygen level
+  if (state != CALIBRATION_AIR_WARMUP && state != RESTORE_CALIBRATION_) {
     handleNegativeFlow();
   }
 
@@ -143,54 +150,60 @@ void loop() {
 }
 
 void handleNegativeFlow() {
-  if(diffPressure < 0 && abs(diffPressure) >= minAbsDiffPressure) {
+  if (diffPressure < 0 && abs(diffPressure) >= minAbsDiffPressure) {
     // negative flow rate detected
     long currentTime = millis();
-    
-    if(negativeFlowStartTime == 0) {
+
+    if (negativeFlowStartTime == 0) {
       // negative flow starting
       negativeFlowStartTime = currentTime;
     }
     int timeDif = currentTime - negativeFlowStartTime;
-    
+
     // wait for init delay to trigger negative flow action
     unsigned long relevantDelay = negativeFlowInitDelayInMs;
-    if(timeDif > relevantDelay) {
-      
+    if (timeDif > relevantDelay) {
+
       // negative flow calibration
-      
+
       // check if warmup is finished
       relevantDelay += calibrate100WarmupInMs;
-      if(timeDif < relevantDelay) {
-        state = CALIBRATION_100_WARMUP;
+      if (timeDif < relevantDelay) {
+        state = CALIBRATION_WARMUP;
       } else {
-        
+
         // check if calibration already happened, if not, calibrate and reset flash
-        if(state == CALIBRATION_100_WARMUP) {
-          calibrateTo100();
+        if (state == CALIBRATION_WARMUP) {
+          // differentiate if we have 0% or 100% oxygen available
+          if (isCalibrateO2) {
+            calibrateTo100();
+          }
+          else {
+            calibrateTo0();
+          }
           resetCalibrationInFlash();
-          state = CALIBRATION_100_DONE;
+          state = CALIBRATION_DONE;
         }
-        
+
         // wait until "calibration done" message was displayed
         relevantDelay += infoMsgDelay;
-        if(timeDif > relevantDelay) {
-          
+        if (timeDif > relevantDelay) {
+
           // delay to confirm that the calibration should be permanently stored
           relevantDelay += negativeFlowPermanentSaveDelayInMs;
-          if(timeDif < relevantDelay) {
-            state = CALIBRATION_100_SAVE_DELAY;
+          if (timeDif < relevantDelay) {
+            state = CALIBRATION_SAVE_DELAY;
           } else {
             // store calibration once
-            if(state == CALIBRATION_100_SAVE_DELAY) {
+            if (state == CALIBRATION_SAVE_DELAY) {
               storeCalibrationToFlash();
-              state = CALIBRATION_100_SAVED;
+              state = CALIBRATION_SAVED;
             }
           }
         }
       }
     }
-    countdown = int((relevantDelay - timeDif)/1000)+1;
+    countdown = int((relevantDelay - timeDif) / 1000) + 1;
   } else {
     negativeFlowStartTime = 0;
   }
@@ -199,44 +212,44 @@ void handleNegativeFlow() {
 void displayState() {
   String line1 = "  Open Oxygen   ";
   String line2 = "                ";
-  
-  if(state == LAUNCH) {
+
+  if (state == LAUNCH) {
     line2 = "Launching..     ";
   }
-  else if(state == CALIBRATION_AIR_WARMUP) {
+  else if (state == CALIBRATION_AIR_WARMUP) {
     line1 = "Calibr. to 20.9%    ";
     line2 = "in ";
     line2 = line2 + countdown + "s, raw: " + adc0 * adcToMV + "        ";
   }
-  else if(state == RESTORE_CALIBRATION) {
+  else if (state == RESTORE_CALIBRATION_) {
     line2 = "Restoring calibration..   ";
   }
-  else if(state == MEASURING) {
+  else if (state == MEASURING) {
     line1 = F("Flow: ");
     line1 += String(flowRate, 5);
-  
+
     line2 = F("Oxygen: ");
     line2 += String(oxygenLevel, 4);
   }
-  else if(state == CALIBRATION_100_WARMUP) {
+  else if (state == CALIBRATION_WARMUP) {
     line1 = "Calibr. to 100%   ";
     line2 = "in ";
     line2 = line2 + countdown + "s, raw: " + adc0 * adcToMV + "        ";
   }
-  else if(state == CALIBRATION_100_DONE) {
+  else if (state == CALIBRATION_DONE) {
     line1 = "Calibration to  ";
     line2 = "100% O2 done.   ";
   }
-  else if(state == CALIBRATION_100_SAVE_DELAY) {
+  else if (state == CALIBRATION_SAVE_DELAY) {
     line1 = "Saving calibr.  ";
     line2 = "perm. in ";
     line2 = line2 + countdown + "s..  ";
   }
-  else if(state == CALIBRATION_100_SAVED) {
-    line1 = "Calibr. to 100% ";
+  else if (state == CALIBRATION_SAVED) {
+    line1 = "Calibr. to 100% "; // or 0?
     line2 = "perm. saved.    ";
   }
-  
+
   line1 = line1.substring(0, 16);
   line2 = line2.substring(0, 16);
   lcd.setCursor(0, 0);
@@ -263,13 +276,45 @@ void updateFlowRate() {
 
 void updateOxygenLevel(boolean doCalibration) {
   // Read the ADC value from the bus:
-   adc0 = ads.getLastConversionResults();
-  if(doCalibration) {
-    String msg = "Calibrating oxy_m to ";
-    msg += String(adc0) + "..";
-    Serial.print(msg);
-    oxy_m = (oxyCalibration - oxy_b) / (adcToMV * adc0);
-    // TODO is oxy_m within plausible boundaries?
+
+  /*
+     I think we should have some additional parameter to update either from Oxygen, Ambient Air or Nitrogen:
+     in case of ambient oxygen we have
+     f(x=20.9)=mx+b
+     then we can differentiate between x==0% or x==100%
+
+     Will come up with a "clever solution"
+
+  */
+  // TODO: Too much stuff in one function..
+  adc0 = ads.getLastConversionResults();
+  if (doCalibration) {
+    if (CALIBRATION_AIR) {
+      adcAmbient = 0; // we should do an average over many samples here
+      for (int imeas = 0; imeas < 10; imeas++) {
+        adc0 = ads.getLastConversionResults();
+        adcAmbient += adc0;
+      }
+      adcAmbient = adcAmbient / 10;
+
+    }
+    else {
+      adc0 = ads.getLastConversionResults();
+
+      String msg = "Calibrating oxy_m to ";
+      msg += String(adc0) + "..";
+      Serial.print(msg);
+      // oxyCalibrationReference is either 0 or 100 (%)
+      // oxyCalibrationVal corresponds to 20.9% 
+      // we want to get the m = (P_x - P_ambient)/(U_x-U_ambient)
+      // adc0 holds current value
+      // adcAmbient holds voltage value at ambient
+      // update the m in mx+b
+      oxy_m = (oxyCalibrationReference - oxyCalibration) / (adcToMV * (adc0 - adcAmbient));
+      oxy_b = adcToMV*(adc0 - adc0*oxy_m)
+      // TODO is oxy_m within plausible boundaries?
+      // TODO: this needs a review!
+    }
   }
   //Serial.print("AIN0: "); Serial.println(adc0);
   // http://cool-web.de/esp8266-esp32/ads1115-16bit-adc-am-esp32-voltmeter.htm
@@ -280,7 +325,12 @@ void updateOxygenLevel(boolean doCalibration) {
 }
 
 void calibrateTo100() {
-  oxyCalibration = 100;
+  oxyCalibrationReference = 100;
+  updateOxygenLevel(true);
+}
+
+void calibrateTo0() {
+  oxyCalibrationReference = 0;
   updateOxygenLevel(true);
 }
 
@@ -291,7 +341,7 @@ void storeCalibrationToFlash() {
   EEPROM.commit();
   Serial.println("Reading initial oxy_m value from flash: ");
   Serial.println(EEPROM_readFloat(calibrationOxyMAddress));
-  
+
 }
 
 void resetCalibrationInFlash() {
@@ -300,23 +350,23 @@ void resetCalibrationInFlash() {
   EEPROM.commit();
   Serial.println("Reading initial oxy_m value from flash: ");
   Serial.println(EEPROM_readFloat(calibrationOxyMAddress));
-  
+
 }
 
 void EEPROM_writeFloat(int ee, float value)
 {
-    byte* p = (byte*)(void*)&value;
-    for (int i = 0; i < sizeof(value); i++)
-        EEPROM.write(ee++, *p++);
+  byte* p = (byte*)(void*)&value;
+  for (int i = 0; i < sizeof(value); i++)
+    EEPROM.write(ee++, *p++);
 }
 
 float EEPROM_readFloat(int ee)
 {
-    float value = 0.0f;
-    byte* p = (byte*)(void*)&value;
-    for (int i = 0; i < sizeof(value); i++)
-        *p++ = EEPROM.read(ee++);
-    return value;
+  float value = 0.0f;
+  byte* p = (byte*)(void*)&value;
+  for (int i = 0; i < sizeof(value); i++)
+    *p++ = EEPROM.read(ee++);
+  return value;
 }
 
 float convert2slm(float dp) {
