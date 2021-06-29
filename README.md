@@ -35,11 +35,9 @@ The ADS1115 has 4 channels and a resolution of 16 Bit.
 <a href="#logo" name="logo"><img src="https://cdn-reichelt.de/bilder/web/artikel_ws/A300/ADAFRUIT-1085-30091131-01.jpg" width="100"></a>
 </p>
 
-
-
 In order to make the device independent from external energy sources, we incorporate a USB-battery/powersupply. We rely on a widely available form factor, where the brand/name of the device can largely vary. 
 
-
+***Explenation for the ADS1115:*** *Differential* or *Single Ended* use? We have a positive DC-signal in the range of `0...~100mV`, hence we can go for the single-mode use. An in-depth explanation can be found at [Adafruit](https://learn.adafruit.com/adafruit-4-channel-adc-breakouts/signal-connections). The oxygen sensor is then connected to `Pin+ => AD0` and `Pin- => GND`. Running the test-script on the ESP32 should give you a voltage of `13mV` in air. 
 
 # CAD Files
 
@@ -73,7 +71,7 @@ All **3D printable** files can be found in [./STL](./STL)
 
 *Sorry for the confusion:* You can mount the parts in both directions. Here, the CAD rendering shows the oxygen sensor on the right hand side, whereas the printed version shows it on the right hand side. Either way works!
 
-1. Make sure you solder all parts together according to the wiring diagram above; To keep the wire chaos small: Twist the cables to form wire bundles; Test its proper functionality by e.g. running the [I2C scanner in the Arduino IDE](https://playground.arduino.cc/Main/I2cScanner/) (you must detect 2 addresses); Then flash the firmware in the Arduino folder.  ***HINT:*** There are some libraries involved; Please install them from the library downloader menu as described [here](https://www.arduino.cc/en/guide/libraries). The following libraries are used: `LiquidCrystal_I2C by Brabander and Sparkfun SDP3X by Sparkfun`
+1. Make sure you solder all parts together according to the wiring diagram above; To keep the wire chaos small: Twist the cables to form wire bundles; Test its proper functionality by e.g. running the [I2C scanner in the Arduino IDE](https://playground.arduino.cc/Main/I2cScanner/) (you must detect 3 addresses); Then flash the firmware in the Arduino folder.  ***HINT:*** There are some libraries involved; Please install them from the library downloader menu as described [here](https://www.arduino.cc/en/guide/libraries). The following libraries are used: `LiquidCrystal_I2C by Brabander`, `Sparkfun SDP3X by Sparkfun`, and `Adafruit ADS1X15`.
 2. Place the LCD screen on the front plate and mount it with 4 M3x12 screws 
 3. Place the flow-rate sensor (sensirion) on the plate by pushing one end through one of the wholes. Watch the photograph:
 
@@ -150,7 +148,11 @@ which can easily be implemented on the ESP32.
 
 Use previously measured calibration data? 
 
-### Calibration of the oxygen level
+### Calibration of the oxygen level (automatic)
+
+By default, the current implementation will automatically calibrate the initial voltage of the oxygen sensor to correspond to 20.9% O2 level. This calibration will take place 10 seconds after starting the device.
+
+### Calibration of the oxygen level (manual)
 
 
 The oxygen sensor has a voltage of ~11mV in air, coresopnding to 20.9% O2 level. Placing the whole device in a oxygen-free enivornment (e.g. dry ice), gives a signal from ~3mV. This information can be used to fit a curve and compute the parameters for the linear fit (~3% error according to the manual/datasheet). 
@@ -170,6 +172,8 @@ which have to be entered in the code `OpenOxygenFlowMeter.ino` in the folder [AR
 float oxy_m = 2.62; // needs to be calibrated
 float oxy_b = 3;  // needs to be calibrated (corresponds to the voltage at Oxygen level == 0%)
 ```
+
+In order to prevent `oxy_m` from being auto calibrated, automatic calibration needs to be disabled by setting `boolean shouldDoWarmupCalibration = false;`.
 
 
 # Bill of materials
