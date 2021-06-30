@@ -316,7 +316,7 @@ void updateOxygenLevel(boolean doCalibration) {
       // adc0 holds current value
       // adcAmbient holds voltage value at ambient
       // update the m in mx+b
-      oxy_m = (oxyCalibrationReference - oxyCalibration) / (adcToMV * (adc0 - adcAmbient));
+      oxy_m = (oxyCalibrationReference - airCalibrationValue) / (adcToMV * (adc0 - adcAmbient));
       oxy_b = adcToMV*(adc0 - adc0*oxy_m)
       // TODO is oxy_m within plausible boundaries?
       // TODO: this needs a review!
@@ -328,7 +328,8 @@ void updateOxygenLevel(boolean doCalibration) {
   oxygenLevel = adc0 * adcToMV * oxy_m + oxy_b;
 
   Serial.print("Oxygenlevel: "); Serial.print(oxygenLevel); Serial.println(" %");
-  Serial.print("ADC: "); Serial.println(adc0);
+  Serial.print("ADC: "); 
+  Serial.println(adc0);
 }
 
 void calibrateToNegativeFlow() {
