@@ -3,42 +3,49 @@
 #include <SparkFun_SDP3x_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_SDP3x
 #include <Wire.h>
 #include <Adafruit_ADS1015.h>//#include <Adafruit_ADS1X15.h> // Does not work on Windows :/ 
-#include <EEPROM.h>
+#include <Preferences.h>
 
+/* HARDWARE */
 
 // all connected to I2C: SDA: Pin 21, SCL: 22
 SDP3X mySensor; //create an object of the SDP3X class
 Adafruit_ADS1115 ads;  /* Use for the oxygensensor */
 LiquidCrystal_I2C lcd(0x38, 16, 2); // set the LCD address to 0x3F for a 16 chars and 2 line display
 
+/* CONFIGURABLE VALUES */
 
-int16_t adc0 = -1;
-int16_t mv = 0;
 float oxy_m = 2.62; // needs to be calibrated
 float oxy_b = 3;  // needs to be calibrated (corresponds to the voltage at Oxygen level == 0%)
-float adcToMV =  0.1875;
-
-// variables for initial auto calibration to air
-float airCalibrationValue = 20.9;
-boolean shouldDoWarmupCalibration = true; //change this to false to skip warmup / calibration phase
-unsigned long startTime;
-unsigned static long warmupDelayInMs = 1000 * 10; // 10s warmup time before calibrating to 21% oxygen level
-float adcAmbient = 11; // voltage level (ADC) @ ambient -> needs to be updated at warmup?
-
-// variables for calibrating with N2/O2
-boolean isCalibrateO2 = false; //if we want to calibrate with O2 => 100% level; if we want to calibrate with N2 => 0% level
-float oxyCalibrationReference = 0.; // value for the reference (i.e. 0 or 100%)
-
-// variables for negative flow calibration
-float negativeFlowCalibrationValue = 100; // change this value to adjust the target oxygen concentration during negative flow calibration
+static float airCalibrationValue = 20.9;
+static float negativeFlowCalibrationValue = 100; // change this value to adjust the target oxygen concentration during negative flow calibration
 float minAbsDiffPressure = 10; // needs to be calibrated (minimal absolute value of pressure to trigger negative flow calibration)
+
+/* CONFIGURABLE BEHAVIOUR */
+
+boolean shouldDoWarmupCalibration = true; //change this to false to skip warmup / calibration phase
+
+/* CONFIGURABLE DELAYS */
+
+unsigned static long warmupDelayInMs = 1000 * 10; // 10s warmup time before calibrating to 21% oxygen level
 unsigned static long negativeFlowInitDelayInMs = 1000 * 2; // 2s before initiating negative flow calibration
 unsigned static long calibrateNegativeFlowWarmupInMs = 1000 * 10; // 10s warmup time before negative flow calibration
 unsigned static long negativeFlowPermanentSaveDelayInMs = 1000 * 10; // 10s delay before storing negative flow calibration value permanently
+
+/* NON CONFIGURABLE */
+
+int16_t adc0 = -1;
+int16_t mv = 0;
+float adcToMV =  0.1875;
+unsigned long startTime;
 unsigned long negativeFlowStartTime = 0;
 
-//variables for storing calibration
-static uint8_t calibrationOxyMAddress = 0;
+struct CalibrationPoint {
+  float oxygenLevel;
+  float voltage; // in mV
+};
+
+CalibrationPoint calibrationA;
+CalibrationPoint calibrationB;
 
 unsigned static long infoMsgDelay = 1000 * 2; // 2s delay to display an info message
 
@@ -47,10 +54,11 @@ uint8_t countdown = 0;
 float flowRate = 0;
 float diffPressure = 0;
 float oxygenLevel = 0;
+float oxygenVoltageAtLaunch = 0;
 
 enum DeviceState {
   LAUNCH,
-  RESTORE_CALIBRATION_,
+  RESTORE_CALIBRATION,
   CALIBRATION_AIR_WARMUP,
   CALIBRATION_AIR,
   MEASURING,
@@ -61,6 +69,11 @@ enum DeviceState {
 };
 
 enum DeviceState state = LAUNCH;
+
+Preferences prefs;
+const char* prefsDevice = "openOxy";
+const char* prefsM = "m";
+const char* prefsB = "b";
 
 
 // TODO: Need to add a button to start the calibration
@@ -99,27 +112,44 @@ void setup() {
   lcd.setCursor(2, 0);
   lcd.print("Open Oxygen");
 
+  // initial calibration points at zero and ambient
+  calibrationA.oxygenLevel = airCalibrationValue;
+  calibrationA.voltage = (airCalibrationValue - oxy_b) / oxy_m;
+  calibrationB.oxygenLevel = 0;
+  calibrationB.voltage = oxy_b;
+
+  // set initial value for ambient voltage to something reasonable in case warmup is set to be skipped
+  oxygenVoltageAtLaunch = calibrationA.voltage;
+
   if (!shouldDoWarmupCalibration) {
     state = MEASURING;
   }
 
   // read initial calibration values from flash
-  if (!EEPROM.begin(sizeof(0.0f))) {
-    Serial.println("failed to initialise EEPROM");
-  } else if (EEPROM_readFloat(calibrationOxyMAddress) > 0) {
-    Serial.println("Reading initial oxy_m value from flash: ");
-    Serial.println(EEPROM_readFloat(calibrationOxyMAddress));
-    state = RESTORE_CALIBRATION_;
-    shouldDoWarmupCalibration = false;
+  if (openPreferences(true)) {
+    float flashM = prefs.getFloat(prefsM, -1);
+    float flashB = prefs.getFloat(prefsB, -1);
+    Serial.print("Reading initial oxy_m value from flash: ");
+    Serial.println(flashM);
+    Serial.print("Reading initial oxy_b value from flash: ");
+    Serial.println(flashB);
+    if (flashM > -1 && flashB > -1) {
+      oxy_m = flashM;
+      oxy_b = flashB;
+      calibrationA.voltage = (calibrationA.oxygenLevel - oxy_b) / oxy_m;
+      calibrationB.voltage = (calibrationB.oxygenLevel - oxy_b) / oxy_m;
+      state = RESTORE_CALIBRATION;
+      shouldDoWarmupCalibration = false;
+    }
+    closePreferences();
   }
+
 }
 
 void loop() {
 
-  boolean doCalibration = false;
-
   long currentTime = millis();
-  if (state == RESTORE_CALIBRATION_) {
+  if (state == RESTORE_CALIBRATION) {
     if (currentTime - startTime > infoMsgDelay) {
       state = MEASURING;
     }
@@ -130,18 +160,21 @@ void loop() {
     } else {
       // warmup is over, trigger calibration & skip warmup check in the future
       shouldDoWarmupCalibration = false;
-      doCalibration = true;
+      calibrationA.oxygenLevel = airCalibrationValue;
+      updateCalibrationPointVoltage(calibrationA);
+      oxygenVoltageAtLaunch = calibrationA.voltage;
+      updateCalibration();
       state = MEASURING;
     }
   }
 
   // update sensor values
   updateFlowRate();
-  updateOxygenLevel(doCalibration);
+  updateOxygenLevel();
 
 
   // negative flow will trigger calibration of the non-ambient oxygen level
-  if (state != CALIBRATION_AIR_WARMUP && state != RESTORE_CALIBRATION_) {
+  if (state != CALIBRATION_AIR_WARMUP && state != RESTORE_CALIBRATION) {
     handleNegativeFlow();
   }
 
@@ -203,6 +236,16 @@ void handleNegativeFlow() {
   }
 }
 
+boolean openPreferences(boolean readOnly) {
+  boolean success = prefs.begin(prefsDevice, readOnly);
+  if (!success) Serial.println("failed to initialise NVS-Namespace");
+  return success;
+}
+
+void closePreferences() {
+  prefs.end();
+}
+
 void displayState() {
   String line1 = "  Open Oxygen   ";
   String line2 = "                ";
@@ -216,7 +259,7 @@ void displayState() {
     line2 = "in ";
     line2 = line2 + countdown + "s, raw: " + adc0 * adcToMV + "        ";
   }
-  else if (state == RESTORE_CALIBRATION_) {
+  else if (state == RESTORE_CALIBRATION) {
     line2 = "Restoring calibration..   ";
   }
   else if (state == MEASURING) {
@@ -272,104 +315,77 @@ void updateFlowRate() {
   Serial.println(F(" (slm)"));
 }
 
-void updateOxygenLevel(boolean doCalibration) {
-  // Read the ADC value from the bus:
-  /*
- ####### impro ve-negative-flow
-   adc0 = ads.getLastConversionResults();
-  if(doCalibration) {
-    String msg = "Calibrating oxy_m to ";
-    msg += String(adc0) + "..";
-    Serial.print(msg);
-    oxy_m = (airCalibrationValue - oxy_b) / (adcToMV * adc0);
-    // TODO is oxy_m within plausible boundaries?
-*/
-
-  /*
-     I think we should have some additional parameter to update either from Oxygen, Ambient Air or Nitrogen:
-     in case of ambient oxygen we have
-     f(x=20.9)=mx+b
-     then we can differentiate between x==0% or x==100%
-     Will come up with a "clever solution"
-  */
-  // TODO: Too much stuff in one function..
-  adc0 = ads.getLastConversionResults();
-  if (doCalibration) {
-    if (CALIBRATION_AIR) {
-      adcAmbient = 0; // we should do an average over many samples here
-      for (int imeas = 0; imeas < 10; imeas++) {
-        adc0 = ads.getLastConversionResults();
-        adcAmbient += adc0;
-      }
-      adcAmbient = adcAmbient / 10;
-
-    }
-    else {
-      adc0 = ads.getLastConversionResults();
-
-      String msg = "Calibrating oxy_m to ";
-      msg += String(adc0) + "..";
-      Serial.print(msg);
-      // oxyCalibrationReference is either 0 or 100 (%)
-      // oxyCalibrationVal corresponds to 20.9% 
-      // we want to get the m = (P_x - P_ambient)/(U_x-U_ambient)
-      // adc0 holds current value
-      // adcAmbient holds voltage value at ambient
-      // update the m in mx+b
-      oxy_m = (oxyCalibrationReference - airCalibrationValue) / (adcToMV * (adc0 - adcAmbient));
-      oxy_b = adcToMV*(adc0 - adc0*oxy_m);
-      // TODO is oxy_m within plausible boundaries?
-      // TODO: this needs a review!
-    }
-
+void updateCalibrationPointVoltage(CalibrationPoint calibrationPoint) {
+  float adcMean = 0; // we should do an average over many samples here
+  for (int imeas = 0; imeas < 10; imeas++) {
+    adc0 = ads.getLastConversionResults();
+    adcMean += adc0;
   }
+  adcMean = adcMean / 10;
+  calibrationPoint.voltage = adcMean*adcToMV;
+}
+
+void updateCalibration() {
+  oxy_m = (adcToMV * (calibrationA.voltage - calibrationB.voltage)) / (calibrationA.oxygenLevel - calibrationB.oxygenLevel);
+  oxy_b = calibrationA.oxygenLevel - calibrationA.voltage*oxy_m;
+  Serial.println("Update calibration using these points:");
+  Serial.print("A: ");
+  Serial.print(calibrationA.oxygenLevel);
+  Serial.print("%, ");
+  Serial.print(calibrationA.voltage);
+  Serial.println("mV");
+  Serial.print("B: ");
+  Serial.print(calibrationB.oxygenLevel);
+  Serial.print("%, ");
+  Serial.print(calibrationB.voltage);
+  Serial.println("mV");
+  Serial.print("oxy_m: ");
+  Serial.print(oxy_m);
+  Serial.print(" oxy_b: ");
+  Serial.println(oxy_b);
+}
+
+
+void updateOxygenLevel() {
+  adc0 = ads.getLastConversionResults();
   //Serial.print("AIN0: "); Serial.println(adc0);
   // http://cool-web.de/esp8266-esp32/ads1115-16bit-adc-am-esp32-voltmeter.htm
   oxygenLevel = adc0 * adcToMV * oxy_m + oxy_b;
-
   Serial.print("Oxygenlevel: "); Serial.print(oxygenLevel); Serial.println(" %");
   Serial.print("ADC: "); 
   Serial.println(adc0);
 }
 
 void calibrateToNegativeFlow() {
-  airCalibrationValue = negativeFlowCalibrationValue;
-  updateOxygenLevel(true);
+    calibrationB.oxygenLevel = negativeFlowCalibrationValue;
+    updateCalibrationPointVoltage(calibrationB);
+    updateCalibration();
 }
 
 void storeCalibrationToFlash() {
-  Serial.println("Writing oxy_m to flash:");
-  Serial.println(oxy_m);
-  EEPROM_writeFloat(calibrationOxyMAddress, oxy_m);
-  EEPROM.commit();
-  Serial.println("Reading initial oxy_m value from flash: ");
-  Serial.println(EEPROM_readFloat(calibrationOxyMAddress));
-
+  Serial.println("Writing calibration to flash:");
+  if(openPreferences(false)) {
+    prefs.putFloat(prefsM, oxy_m);
+    prefs.putFloat(prefsB, oxy_b);
+    Serial.print("Reading initial oxy_m value from flash: ");
+    Serial.println(prefs.getFloat(prefsM, 0));
+    Serial.print("Reading initial oxy_b value from flash: ");
+    Serial.println(prefs.getFloat(prefsB, 0));
+    closePreferences(); 
+  }
 }
 
 void resetCalibrationInFlash() {
   Serial.println("Resetting oxy_m in flash..");
-  EEPROM_writeFloat(calibrationOxyMAddress, 0.0f);
-  EEPROM.commit();
-  Serial.println("Reading initial oxy_m value from flash: ");
-  Serial.println(EEPROM_readFloat(calibrationOxyMAddress));
-
-}
-
-void EEPROM_writeFloat(int ee, float value)
-{
-  byte* p = (byte*)(void*)&value;
-  for (int i = 0; i < sizeof(value); i++)
-    EEPROM.write(ee++, *p++);
-}
-
-float EEPROM_readFloat(int ee)
-{
-  float value = 0.0f;
-  byte* p = (byte*)(void*)&value;
-  for (int i = 0; i < sizeof(value); i++)
-    *p++ = EEPROM.read(ee++);
-  return value;
+  if(openPreferences(false)) {
+    prefs.remove(prefsM);
+    prefs.remove(prefsB);
+    Serial.print("Reading initial oxy_m value from flash: ");
+    Serial.println(prefs.getFloat(prefsM, 0));
+    Serial.print("Reading initial oxy_b value from flash: ");
+    Serial.println(prefs.getFloat(prefsB, 0));
+    closePreferences(); 
+  }
 }
 
 float convert2slm(float dp) {
