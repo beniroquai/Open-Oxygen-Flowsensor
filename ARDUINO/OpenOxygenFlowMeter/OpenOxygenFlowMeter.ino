@@ -317,7 +317,7 @@ void updateOxygenLevel(boolean doCalibration) {
       // adcAmbient holds voltage value at ambient
       // update the m in mx+b
       oxy_m = (oxyCalibrationReference - airCalibrationValue) / (adcToMV * (adc0 - adcAmbient));
-      oxy_b = adcToMV*(adc0 - adc0*oxy_m)
+      oxy_b = adcToMV*(adc0 - adc0*oxy_m);
       // TODO is oxy_m within plausible boundaries?
       // TODO: this needs a review!
     }
